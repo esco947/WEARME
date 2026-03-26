@@ -1,0 +1,20 @@
+# Node
+node_modules/
+.next/
+frontend/.env.local
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.env
+backend/fitview.db
+
+# Data / modèles
+data/smpl_model/
+static/simulations/
+static/avatars/
+
+# IDE
+.vscode/
+.idea/

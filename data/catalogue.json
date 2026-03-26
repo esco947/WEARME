@@ -1,0 +1,90 @@
+[
+  {
+    "id": "tshirt-basic-01",
+    "name": "T-shirt Essentiel",
+    "brand": "UrbanFit",
+    "type": "top",
+    "sizes": ["S", "M", "L", "XL"],
+    "color": "Blanc",
+    "price": 29.99,
+    "thumbnail": "/images/tshirt-basic-01.jpg",
+    "description": "T-shirt en coton bio, coupe droite. Idéal au quotidien, doux et respirant."
+  },
+  {
+    "id": "tshirt-graphic-02",
+    "name": "T-shirt Graphique",
+    "brand": "UrbanFit",
+    "type": "top",
+    "sizes": ["XS", "S", "M", "L", "XL"],
+    "color": "Noir",
+    "price": 34.99,
+    "thumbnail": "/images/tshirt-graphic-02.jpg",
+    "description": "T-shirt avec imprimé graphique, 100% coton, coupe ajustée."
+  },
+  {
+    "id": "jeans-slim-01",
+    "name": "Jean Slim Moderne",
+    "brand": "UrbanFit",
+    "type": "bottom",
+    "sizes": ["28", "30", "32", "34", "36"],
+    "color": "Bleu délavé",
+    "price": 59.99,
+    "thumbnail": "/images/jeans-slim-01.jpg",
+    "description": "Jean slim stretch, confortable pour toute la journée. Coupe moderne et flatteuse."
+  },
+  {
+    "id": "pantalon-chino-01",
+    "name": "Chino Urbain",
+    "brand": "UrbanFit",
+    "type": "bottom",
+    "sizes": ["S", "M", "L", "XL"],
+    "color": "Beige",
+    "price": 49.99,
+    "thumbnail": "/images/pantalon-chino-01.jpg",
+    "description": "Pantalon chino en coton, coupe droite. Polyvalent, du bureau à la soirée."
+  },
+  {
+    "id": "robe-casual-01",
+    "name": "Robe Casual Été",
+    "brand": "ModaVerde",
+    "type": "dress",
+    "sizes": ["XS", "S", "M", "L"],
+    "color": "Vert sauge",
+    "price": 54.99,
+    "thumbnail": "/images/robe-casual-01.jpg",
+    "description": "Robe légère en viscose recyclée. Coupe fluide, idéale pour les journées chaudes."
+  },
+  {
+    "id": "robe-midi-02",
+    "name": "Robe Midi Élégante",
+    "brand": "ModaVerde",
+    "type": "dress",
+    "sizes": ["XS", "S", "M", "L", "XL"],
+    "color": "Terracotta",
+    "price": 74.99,
+    "thumbnail": "/images/robe-midi-02.jpg",
+    "description": "Robe midi à taille marquée, tissu fluide premium. Parfaite pour les occasions spéciales."
+  },
+  {
+    "id": "veste-legere-01",
+    "name": "Veste Légère Sport",
+    "brand": "UrbanFit",
+    "type": "jacket",
+    "sizes": ["S", "M", "L", "XL", "XXL"],
+    "color": "Gris anthracite",
+    "price": 89.99,
+    "thumbnail": "/images/veste-legere-01.jpg",
+    "description": "Veste zippée légère, résistante au vent. Idéale pour les demi-saisons et le sport."
+  },
+  {
+    "id": "blazer-casual-01",
+    "name": "Blazer Casual",
+    "brand": "ModaVerde",
+    "type": "jacket",
+    "sizes": ["XS", "S", "M", "L", "XL"],
+    "color": "Bleu marine",
+    "price": 119.99,
+    "thumbnail": "/images/blazer-casual-01.jpg",
+    "description": "Blazer déstructuré en lin mélangé. Coupe moderne, peut se porter avec un jean ou un pantalon."
+  }
+]
