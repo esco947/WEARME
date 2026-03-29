@@ -1,0 +1,9 @@
+# WEARME — Application configuration
+app_name: WEARME
+version: "0.1.0"
+
+# Logging level: DEBUG | INFO | WARNING | ERROR | CRITICAL
+log_level: INFO
+
+# Output directory for exported assets (relative to project root)
+output_dir: output/

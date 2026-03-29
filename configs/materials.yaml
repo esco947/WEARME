@@ -1,0 +1,12 @@
+# WEARME — Material / fabric presets configuration
+# Populated in Phase 3 (Vêtement minimal)
+
+# Preset structure (placeholder — Phase 3 will set real values):
+#   <preset_name>:
+#     display_name: <str>
+#     mass: <float>        # kg/m²
+#     stiffness: <float>   # Blender cloth stiffness (0-10000)
+#     damping: <float>     # Blender cloth damping
+#     air_viscosity: <float>
+
+# TODO Phase 3: add presets for cotton, jersey, denim, silk, wool

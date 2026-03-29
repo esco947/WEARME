@@ -1,0 +1,16 @@
+# WEARME — Simulation parameters configuration
+# Populated in Phase 2-3 (Blender bridge + Garment)
+
+# Blender cloth simulation settings (placeholder — Phase 2 will set real values):
+#
+# quality_steps: 5          # simulation substeps per frame
+# collision_distance: 0.002 # metres
+# self_collision: false
+# bake_frames: 50           # number of frames to bake
+# gravity: [0.0, 0.0, -9.81]  # m/s²
+
+# Collision proxy settings:
+# proxy_target_faces: 2000  # triangle count for simplified collision mesh
+
+# TODO Phase 2: configure Blender-specific simulation defaults
+# TODO Phase 3: add garment-specific overrides
