@@ -1,0 +1,103 @@
+# WEARME .gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# pytest / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+*.py,cover
+nosetests.xml
+test-results/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# ruff
+.ruff_cache/
+
+# Type checking stubs
+*.pyi
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# SMPL model files (large, licensed separately — store locally)
+smpl_model/
+data/body_models/*.pkl
+data/body_models/*.npz
+data/body_models/*.pth
+
+# Large binary assets
+*.glb
+*.obj
+*.fbx
+*.blend
+*.blend1
+data/textures/*.png
+data/textures/*.jpg
+data/textures/*.exr
+
+# Generated outputs
+data/samples/*.glb
+data/samples/*.obj
+
+# Serialized body data
+*.npz
+
+# Logs
+*.log
+logs/
+
+# Secrets
+.env.local
+.env.*.local
+secrets.yaml
+secrets.json
+
+# OS
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
