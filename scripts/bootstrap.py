@@ -10,8 +10,8 @@ Run from the project root::
 Exits with code 0 on success, 1 on first failure.
 """
 
-import sys
 import logging
+import sys
 
 logger = logging.getLogger("wearme.bootstrap")
 
@@ -20,35 +20,35 @@ def _check_python_version() -> None:
     """Verify Python >= 3.11."""
     major, minor = sys.version_info[:2]
     if (major, minor) < (3, 11):
-        raise EnvironmentError(
+        raise OSError(
             f"Python 3.11+ required, got {major}.{minor}. "
             "Please upgrade your Python interpreter."
         )
-    logger.info("Python version: %d.%d ✓", major, minor)
+    logger.info("Python version: %d.%d [OK]", major, minor)
 
 
 def _check_wearme_importable() -> None:
     """Verify the wearme package is importable (i.e. installed with pip -e)."""
     try:
         import wearme  # noqa: F401
-        from wearme.core import paths, constants, units  # noqa: F401
+        from wearme.core import constants, paths, units  # noqa: F401
         from wearme.io.json_io import load_json, save_json  # noqa: F401
     except ImportError as exc:
-        raise EnvironmentError(
+        raise OSError(
             "Cannot import wearme. "
             "Run: pip install -e '.[dev]' from the project root."
         ) from exc
-    logger.info("wearme package importable ✓")
+    logger.info("wearme package importable [OK]")
 
 
 def _check_data_directories() -> None:
     """Verify that required data sub-directories exist."""
     from wearme.core.paths import (
-        DATA_DIR,
         BODY_MODELS_DIR,
+        DATA_DIR,
         GARMENTS_DIR,
-        TEXTURES_DIR,
         SAMPLES_DIR,
+        TEXTURES_DIR,
     )
 
     required = {
@@ -61,11 +61,11 @@ def _check_data_directories() -> None:
 
     missing = [label for label, path in required.items() if not path.exists()]
     if missing:
-        raise EnvironmentError(
+        raise OSError(
             "Missing data directories (run Phase 0 setup): "
             + ", ".join(missing)
         )
-    logger.info("Data directories present ✓")
+    logger.info("Data directories present [OK]")
 
 
 def _check_configs_exist() -> None:
@@ -77,10 +77,10 @@ def _check_configs_exist() -> None:
         if not p.is_file()
     ]
     if missing:
-        raise EnvironmentError(
+        raise OSError(
             "Missing config files: " + ", ".join(missing)
         )
-    logger.info("Config files present ✓")
+    logger.info("Config files present [OK]")
 
 
 def main() -> None:
@@ -101,11 +101,11 @@ def main() -> None:
     for check in checks:
         try:
             check()
-        except EnvironmentError as exc:
+        except OSError as exc:
             logger.error("Bootstrap failed: %s", exc)
             sys.exit(1)
 
-    logger.info("Bootstrap complete — environment is ready.")
+    logger.info("Bootstrap complete - environment is ready.")
 
 
 if __name__ == "__main__":
