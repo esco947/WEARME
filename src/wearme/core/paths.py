@@ -31,3 +31,6 @@ APP_CONFIG: Path = CONFIGS_DIR / "app.yaml"
 BODY_CONFIG: Path = CONFIGS_DIR / "body.yaml"
 MATERIALS_CONFIG: Path = CONFIGS_DIR / "materials.yaml"
 SIM_CONFIG: Path = CONFIGS_DIR / "sim.yaml"
+
+# SMPL model source directory (not versioned — local installation)
+SMPL_MODEL_DIR: Path = PROJECT_ROOT / "smpl_model" / "SMPL_python_v.1.1.0" / "smpl"
