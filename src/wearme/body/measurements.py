@@ -37,7 +37,53 @@ logger = logging.getLogger(__name__)
 
 _PLANE_NORMAL = np.array([0.0, 1.0, 0.0])  # horizontal plane (Y up)
 
+#: Vertical slice half-thickness for vertex-based cross-section sampling (metres)
+_SLICE_TOLERANCE_M: float = 0.010
+
+#: Minimum number of cross-section points required for a convex hull estimate
+_MIN_CROSS_SECTION_POINTS: int = 3
+
 # ── Internal helpers ──────────────────────────────────────────────────────────
+
+
+def _circumference_at_height(
+    vertices: np.ndarray,
+    y: float,
+    tolerance: float = _SLICE_TOLERANCE_M,
+) -> float:
+    """Estimate circumference at a height from raw vertex slice (convex hull).
+
+    Selects all vertices within *tolerance* metres of height *y*, projects
+    them onto the XZ plane, and returns the convex hull perimeter.
+
+    Note: This is a lower-level utility. For accurate measurements use
+    :func:`_section_length` which works on the full mesh topology.
+
+    Args:
+        vertices: Mesh vertices. Shape ``(N, 3)``.
+        y: Measurement height (Y coordinate) in metres.
+        tolerance: Half-thickness of the horizontal slice.
+
+    Returns:
+        Approximate circumference in metres. Returns 0.0 when fewer than
+        ``_MIN_CROSS_SECTION_POINTS`` vertices fall in the slice.
+    """
+    from scipy.spatial import ConvexHull  # noqa: PLC0415
+
+    mask = np.abs(vertices[:, 1] - y) < tolerance
+    pts = np.unique(vertices[mask][:, [0, 2]], axis=0)  # XZ projection
+
+    if len(pts) < _MIN_CROSS_SECTION_POINTS:
+        return 0.0
+
+    try:
+        hull = ConvexHull(pts)
+    except Exception:  # noqa: BLE001
+        return 0.0
+
+    verts = pts[hull.vertices]
+    closed = np.vstack([verts, verts[0]])
+    return float(np.sum(np.linalg.norm(np.diff(closed, axis=0), axis=1)))
 
 
 def _build_mesh(params: BodyParameters, model_data: SMPLModelData) -> trimesh.Trimesh:
@@ -83,7 +129,7 @@ def _section_length(mesh: trimesh.Trimesh, y: float) -> float:
         logger.debug("No cross-section at y=%.3f", y)
         return 0.0
 
-    path_2d, _ = section.to_planar()
+    path_2d, _ = section.to_2D()
 
     # Path2D may contain multiple discrete closed curves (torso + arms + legs).
     # Pick the one whose centroid is nearest to the body axis (2D origin = 0,0).
