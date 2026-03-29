@@ -1,20 +1,39 @@
 # WEARME — Body parameters configuration
-# Populated in Phase 1 (Corps manuel MVP)
 
-# Parameter limits will be defined here as:
-#   <param_name>:
-#     min: <float>   # minimum value (meters or dimensionless)
-#     max: <float>   # maximum value
-#     default: <float>
-#     unit: <str>    # "m" | "cm" | "kg" | "dimensionless"
-#     description: <str>
+# Gender options
+gender:
+  allowed: ["neutral", "male", "female"]
+  default: "neutral"
 
-# Example (placeholder — Phase 1 will set real values):
-# height:
-#   min: 1.40
-#   max: 2.20
-#   default: 1.75
-#   unit: m
-#   description: Total standing height
+# Approximate height (metres) — indicative, derived from SMPL vertices
+height:
+  min: 1.40
+  max: 2.20
+  default: 1.75
+  unit: m
 
-# TODO Phase 1: fill in all SMPL shape parameters + derived measurements
+# Approximate weight (kg) — indicative slider only
+weight:
+  min: 40.0
+  max: 200.0
+  default: 70.0
+  unit: kg
+
+# SMPL shape coefficients (beta vector, 10 dims)
+# Range is roughly ±4 standard deviations from the training distribution
+betas:
+  dims: 10
+  min: -4.0
+  max: 4.0
+  default: 0.0
+
+# SMPL pose parameters (theta vector, 72 dims = 24 joints × 3 Rodrigues)
+# Phase 1: always T-pose (all zeros); Phase 2+ will expose joint controls
+pose:
+  dims: 72
+  default: 0.0
+
+# Translation vector (metres, world space)
+trans:
+  dims: 3
+  default: 0.0
