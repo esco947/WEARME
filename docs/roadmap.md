@@ -22,21 +22,22 @@
 
 ---
 
-### Phase 1 — Corps manuel MVP 🔲
+### Phase 1 — Corps manuel MVP ✅
 
-**Branche** : `feature/body-manual`
+**Branche** : `feature/body-manual` → merged `dev`
 
 **Objectif** : Créer, sauvegarder, charger, mesurer un corps paramétrique.
 
-- [ ] `configs/body.yaml` — limites min/max par paramètre
-- [ ] `src/wearme/body/body_params.py` — dataclass `BodyParameters` avec validation
-- [ ] `src/wearme/body/measurements.py` — calculs de mensurations
-- [ ] `src/wearme/body/canonical_pose.py` — pose fixe T/A
-- [ ] `src/wearme/body/manual_editor.py` — logique slider
-- [ ] `tests/test_body/` — test_body_params, test_measurements
-- [ ] `data/samples/default_body.json`
+- [x] `configs/body.yaml` — limites min/max par paramètre
+- [x] `src/wearme/body/body_params.py` — dataclass `BodyParameters` avec validation
+- [x] `src/wearme/body/canonical_pose.py` — T-pose et A-pose
+- [x] `src/wearme/body/smpl_bridge.py` — numpy LBS pur (avancé de Phase 2)
+- [x] `src/wearme/body/measurements.py` — calculs via trimesh cross-sections
+- [x] `src/wearme/body/manual_editor.py` — BodyEditor avec 5 sliders
+- [x] `tests/test_body/` — 29 tests (body_params + measurements)
+- [x] `data/samples/default_body.json`
 
-**Critères** : création · validation · JSON aller-retour · calculs cohérents · tests verts
+**Critères** : 53 tests verts · ruff propre · bootstrap OK · SMPL mesh 6890 vertices
 
 ---
 
