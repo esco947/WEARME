@@ -1,0 +1,1 @@
+"""WEARME backend — FastAPI application."""

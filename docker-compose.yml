@@ -1,0 +1,17 @@
+services:
+  backend:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:///data/wearme.db
+      - JWT_SECRET=change-me-in-production
+    volumes:
+      - ./data:/app/data       # persist SQLite DB + SMPL models
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend

@@ -41,20 +41,22 @@
 
 ---
 
-### Phase 2 — Intégration Blender MVP 🔲
+### Phase 2 — Intégration Blender MVP ✅
 
-**Branche** : `feature/blender-bridge`
+**Branche** : `feature/backend-api`
 
 **Pré-requis** : Phase 1 complète
 
 **Objectif** : Charger un corps dans Blender, afficher un mesh, mettre à jour, exporter.
 
-- [ ] `src/wearme/body/smpl_bridge.py`
-- [ ] `src/wearme/sim/blender_bridge.py`
-- [ ] `src/wearme/io/glb_export.py`
-- [ ] `src/wearme/io/obj_export.py`
-- [ ] `blender_addon/__init__.py`
-- [ ] `blender_addon/panels/main_panel.py`
+- [x] `src/wearme/body/smpl_bridge.py` ← avancé en Phase 1
+- [x] `src/wearme/sim/blender_bridge.py`
+- [x] `src/wearme/io/glb_export.py`
+- [x] `src/wearme/io/obj_export.py`
+- [x] `blender_addon/__init__.py`
+- [x] `blender_addon/panels/main_panel.py`
+
+**Critères** : 113 tests verts · ruff propre · blender_bridge importable hors Blender
 
 ---
 

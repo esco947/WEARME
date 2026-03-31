@@ -1,0 +1,42 @@
+[
+  {
+    "id": "g-001",
+    "name": "T-Shirt Classique",
+    "category": "t-shirt",
+    "description": "T-shirt coton uni, coupe droite, col rond. Idéal pour le quotidien.",
+    "sizes": ["XS", "S", "M", "L", "XL", "XXL"],
+    "thumbnail_url": null
+  },
+  {
+    "id": "g-002",
+    "name": "Veste en Jean",
+    "category": "jacket",
+    "description": "Veste en denim délavé, coupe regular, boutons métalliques.",
+    "sizes": ["XS", "S", "M", "L", "XL"],
+    "thumbnail_url": null
+  },
+  {
+    "id": "g-003",
+    "name": "Pantalon Slim",
+    "category": "pants",
+    "description": "Pantalon chino slim-fit, taille mi-haute, coloris beige.",
+    "sizes": ["36", "38", "40", "42", "44", "46"],
+    "thumbnail_url": null
+  },
+  {
+    "id": "g-004",
+    "name": "Hoodie Oversize",
+    "category": "hoodie",
+    "description": "Sweat à capuche oversize en molleton doux, poche kangourou.",
+    "sizes": ["XS", "S", "M", "L", "XL", "XXL"],
+    "thumbnail_url": null
+  },
+  {
+    "id": "g-005",
+    "name": "Robe Midi Fleurie",
+    "category": "dress",
+    "description": "Robe midi à imprimé floral, col V, manches courtes, taille marquée.",
+    "sizes": ["XS", "S", "M", "L", "XL"],
+    "thumbnail_url": null
+  }
+]
