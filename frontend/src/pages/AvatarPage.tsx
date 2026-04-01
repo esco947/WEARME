@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { getAvatar, updateAvatar } from '../api/client'
+import { getAvatar, updateAvatar, getFullMeasurements } from '../api/client'
 import { useAvatarStore } from '../store/avatarStore'
 import { useAuthStore } from '../store/authStore'
 import AvatarViewer, { SkinTonePicker, loadStoredSkinTone, storeSkinTone } from '../components/AvatarViewer'
 import type { SkinToneId } from '../components/AvatarViewer'
-import { bodyParamsToSmplBetas, smplBetasToBodyParams, DEFAULT_BODY_PARAMS } from '../lib/bodyParamsMapping'
+import { bodyParamsToSmplBetas, smplBetasToBodyParams, bodyParamsToAnatomical, DEFAULT_BODY_PARAMS } from '../lib/bodyParamsMapping'
 import PhotoPrecisionCapture from '../components/PhotoPrecisionCapture'
-import type { BodyParams } from '../types'
+import type { BodyParams, FullMeasurements } from '../types'
 
 // ── Slider row helper ─────────────────────────────────────────────────────
 
@@ -85,6 +85,8 @@ export default function AvatarPage() {
   const [initDone, setInitDone]     = useState(false)
   const [pageError, setPageError]   = useState('')
 
+  const [fullMeasurements, setFullMeasurements] = useState<FullMeasurements | null>(null)
+
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Load avatar on mount
@@ -105,18 +107,28 @@ export default function AvatarPage() {
     setInitDone(true)
   }, [avatar, initDone])
 
+  // Reload full measurements after mesh update
+  useEffect(() => {
+    if (!avatar) return
+    getFullMeasurements()
+      .then(setFullMeasurements)
+      .catch(() => { /* silently fail — old backend OK */ })
+  }, [avatar?.id, meshKey])
+
   // Debounced save to API
   const scheduleReSave = (params: BodyParams, g: typeof gender) => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(async () => {
       setSaving(true)
       try {
-        const betas = bodyParamsToSmplBetas(params)
+        const betas      = bodyParamsToSmplBetas(params)
+        const anatomical = bodyParamsToAnatomical(params)
         const saved = await updateAvatar({
           gender: g,
           betas,
           height_m: params.height_m,
           weight_kg: params.weight_kg,
+          params: anatomical,
         })
         setAvatar(saved)
         setMeshKey((k) => k + 1)
@@ -157,6 +169,27 @@ export default function AvatarPage() {
               onChange={(id) => { setSkinTone(id); storeSkinTone(id) }}
             />
           </div>
+
+          {/* ── Measurements panel (Phase 2) ──────────────────────────── */}
+          {fullMeasurements && (
+            <div className="bg-white rounded-xl shadow px-4 py-3">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Mensurations</p>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                <span className="text-gray-500">Poitrine</span>
+                <span className="font-medium text-right">{Math.round(fullMeasurements.chest_m * 100)} cm</span>
+                <span className="text-gray-500">Taille</span>
+                <span className="font-medium text-right">{Math.round(fullMeasurements.waist_m * 100)} cm</span>
+                <span className="text-gray-500">Hanches</span>
+                <span className="font-medium text-right">{Math.round(fullMeasurements.hip_m * 100)} cm</span>
+                <span className="text-gray-500">Entrejambe</span>
+                <span className="font-medium text-right">{Math.round(fullMeasurements.inseam_m * 100)} cm</span>
+              </div>
+              <div className="mt-2 pt-2 border-t border-gray-100 flex justify-between text-sm">
+                <span className="text-gray-500">Taille EU</span>
+                <span className="font-semibold text-brand-600">{fullMeasurements.eu_size_top}</span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── Right: Controls ─────────────────────────────────────────── */}

@@ -46,3 +46,26 @@ _A_POSE_ARRAY[17 * 3 + 2] = -_SHOULDER_ANGLE_RAD
 
 #: A-pose: arms lowered ~30° from horizontal. Preferred for cloth simulation.
 A_POSE: np.ndarray = _A_POSE_ARRAY
+
+# ── Relaxed pose ──────────────────────────────────────────────────────────────
+# Relaxed pose: slight forward lean + natural arm hang (~45° down from horizontal).
+# Useful for garment visualisation — more natural than T-pose.
+#
+# Joint 3 = spine1: slight forward tilt (+5° around X = forward lean)
+# Joint 16 = left shoulder:  +45° around Z  (arm hangs down-forward)
+# Joint 17 = right shoulder: -45° around Z
+
+_RELAXED_ANGLE_RAD: float = np.deg2rad(45.0)
+_SPINE_TILT_RAD: float = np.deg2rad(5.0)
+
+_RELAXED_POSE_ARRAY: np.ndarray = np.zeros(72, dtype=np.float64)
+# Spine1 (joint 3): tilt forward around X
+_RELAXED_POSE_ARRAY[3 * 3 + 0] = _SPINE_TILT_RAD
+# Left shoulder (joint 16): rotate +45° around Z
+_RELAXED_POSE_ARRAY[16 * 3 + 2] = _RELAXED_ANGLE_RAD
+# Right shoulder (joint 17): rotate -45° around Z (mirror)
+_RELAXED_POSE_ARRAY[17 * 3 + 2] = -_RELAXED_ANGLE_RAD
+
+#: Relaxed pose: arms hanging at ~45° from horizontal, slight forward lean.
+#: Use for garment draping visualisation.
+RELAXED_POSE: np.ndarray = _RELAXED_POSE_ARRAY

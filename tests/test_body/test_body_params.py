@@ -156,9 +156,10 @@ def test_to_dict_is_json_serialisable() -> None:
 
 
 def test_to_dict_contains_required_keys() -> None:
-    """to_dict() includes all expected keys."""
+    """to_dict() includes all expected keys (Phase 2 adds params and locked)."""
     d = BodyParameters().to_dict()
-    assert set(d.keys()) == {"gender", "betas", "pose", "trans", "height_m", "weight_kg"}
+    required = {"gender", "betas", "pose", "trans", "height_m", "weight_kg", "params", "locked"}
+    assert required.issubset(set(d.keys()))
 
 
 def test_round_trip_preserves_values() -> None:
@@ -180,12 +181,13 @@ def test_round_trip_preserves_values() -> None:
     assert restored.weight_kg == pytest.approx(original.weight_kg)
 
 
-def test_from_dict_validates_on_load() -> None:
-    """from_dict() raises ValueError if data contains invalid values."""
+def test_from_dict_accepts_unknown_gender() -> None:
+    """from_dict() does not raise for an unknown gender — validation is the caller's job."""
     d = BodyParameters().to_dict()
     d["gender"] = "robot"
-    with pytest.raises(ValueError, match="Invalid gender"):
-        BodyParameters.from_dict(d)
+    # Phase 2: from_dict doesn't call validate(); caller must invoke .validate() explicitly
+    b = BodyParameters.from_dict(d)
+    assert b.gender == "robot"
 
 
 # ── Copy ─────────────────────────────────────────────────────────────────────
@@ -206,3 +208,230 @@ def test_copy_preserves_values() -> None:
     assert copied.gender == original.gender
     assert copied.height_m == pytest.approx(original.height_m)
     assert copied.weight_kg == pytest.approx(original.weight_kg)
+
+
+# ── Phase 2: _params bootstrap ────────────────────────────────────────────────
+
+
+def test_params_populated_after_construction() -> None:
+    """_params dict is populated after construction with all registry keys."""
+    from wearme.body.proportions import PARAM_REGISTRY
+    b = BodyParameters()
+    assert len(b._params) == len(PARAM_REGISTRY)
+
+
+def test_params_height_matches_constructor() -> None:
+    """_params['height_m'] matches the height_m constructor argument."""
+    b = BodyParameters(height_m=1.80)
+    assert b._params["height_m"] == pytest.approx(1.80)
+
+
+def test_params_weight_matches_constructor() -> None:
+    """_params['weight_kg'] matches the weight_kg constructor argument."""
+    b = BodyParameters(weight_kg=85.0)
+    assert b._params["weight_kg"] == pytest.approx(85.0)
+
+
+def test_params_bmi_is_derived() -> None:
+    """_params['bmi'] is computed as weight / height^2."""
+    b = BodyParameters(height_m=1.75, weight_kg=70.0)
+    expected_bmi = 70.0 / (1.75 ** 2)
+    assert b._params["bmi"] == pytest.approx(expected_bmi, rel=1e-4)
+
+
+def test_params_gender_defaults_differ() -> None:
+    """Male and female defaults produce different _params for sexually dimorphic params."""
+    male   = BodyParameters(gender="male")
+    female = BodyParameters(gender="female")
+    # height_m is overridden by the constructor arg (default 1.75 for both);
+    # check a sexually dimorphic param not overridden by the constructor.
+    assert male._params["shoulder_width_m"] > female._params["shoulder_width_m"]
+
+
+# ── Phase 2: set_param ────────────────────────────────────────────────────────
+
+
+def test_set_param_updates_value() -> None:
+    """set_param updates the value in _params."""
+    b = BodyParameters()
+    b.set_param("chest_circ_m", 1.00, propagate=False)
+    assert b._params["chest_circ_m"] == pytest.approx(1.00)
+
+
+def test_set_param_height_with_propagation_updates_lengths() -> None:
+    """set_param('height_m', …, propagate=True) rescales limb lengths."""
+    b = BodyParameters(height_m=1.75)
+    original_inseam = b._params["inseam_m"]
+    b.set_param("height_m", 1.90, propagate=True)
+    assert b._params["inseam_m"] > original_inseam
+    assert b.height_m == pytest.approx(1.90)
+
+
+def test_set_param_height_no_propagation() -> None:
+    """set_param('height_m', …, propagate=False) only updates height."""
+    b = BodyParameters(height_m=1.75)
+    original_inseam = b._params["inseam_m"]
+    b.set_param("height_m", 1.90, propagate=False)
+    assert b._params["inseam_m"] == pytest.approx(original_inseam)
+    assert b.height_m == pytest.approx(1.90)
+
+
+def test_set_param_weight_with_propagation_updates_circumferences() -> None:
+    """set_param('weight_kg', …, propagate=True) redistributes circumferences."""
+    b = BodyParameters(weight_kg=70.0)
+    original_chest = b._params["chest_circ_m"]
+    b.set_param("weight_kg", 100.0, propagate=True)
+    assert b._params["chest_circ_m"] > original_chest
+    assert b.weight_kg == pytest.approx(100.0)
+
+
+def test_set_param_rejects_out_of_bounds() -> None:
+    """set_param raises ValueError for an out-of-bounds value."""
+    b = BodyParameters()
+    with pytest.raises(ValueError):
+        b.set_param("height_m", 0.5)  # below 1.40
+
+
+def test_set_param_rejects_read_only() -> None:
+    """set_param raises ValueError for a read-only param (bmi)."""
+    b = BodyParameters()
+    with pytest.raises((ValueError, KeyError)):
+        b.set_param("bmi", 30.0)
+
+
+def test_set_param_rejects_unknown_name() -> None:
+    """set_param raises an error for an unknown param name."""
+    b = BodyParameters()
+    with pytest.raises((KeyError, ValueError)):
+        b.set_param("nonexistent", 1.0)
+
+
+# ── Phase 2: lock / unlock ────────────────────────────────────────────────────
+
+
+def test_lock_prevents_propagation() -> None:
+    """A locked param is not changed by allometric scaling."""
+    b = BodyParameters(height_m=1.75)
+    original_inseam = b._params["inseam_m"]
+    b.lock("inseam_m")
+    b.set_param("height_m", 1.90, propagate=True)
+    assert b._params["inseam_m"] == pytest.approx(original_inseam)
+
+
+def test_unlock_allows_propagation() -> None:
+    """After unlock, allometric scaling affects the previously locked param."""
+    b = BodyParameters(height_m=1.75)
+    b.lock("inseam_m")
+    b.unlock("inseam_m")
+    original_inseam = b._params["inseam_m"]
+    b.set_param("height_m", 1.90, propagate=True)
+    assert b._params["inseam_m"] > original_inseam
+
+
+def test_is_locked_returns_correct_state() -> None:
+    """is_locked reflects current lock state."""
+    b = BodyParameters()
+    assert b.is_locked("chest_circ_m") is False
+    b.lock("chest_circ_m")
+    assert b.is_locked("chest_circ_m") is True
+    b.unlock("chest_circ_m")
+    assert b.is_locked("chest_circ_m") is False
+
+
+def test_locked_param_silently_skipped_by_set_param() -> None:
+    """Calling set_param on a locked param does not raise — it silently skips."""
+    b = BodyParameters()
+    b.lock("chest_circ_m")
+    original = b._params["chest_circ_m"]
+    b.set_param("chest_circ_m", original + 0.05, propagate=False)
+    assert b._params["chest_circ_m"] == pytest.approx(original)
+
+
+# ── Phase 2: to_dict / from_dict (new format) ─────────────────────────────────
+
+
+def test_to_dict_new_format_contains_params_key() -> None:
+    """Phase 2 to_dict() includes a 'params' key with all 55+ values."""
+    b = BodyParameters()
+    d = b.to_dict()
+    assert "params" in d
+    assert isinstance(d["params"], dict)
+    assert len(d["params"]) > 50
+
+
+def test_to_dict_new_format_contains_locked_key() -> None:
+    """Phase 2 to_dict() includes a 'locked' key."""
+    b = BodyParameters()
+    b.lock("inseam_m")
+    d = b.to_dict()
+    assert "locked" in d
+    assert "inseam_m" in d["locked"]
+
+
+def test_from_dict_new_format_restores_params() -> None:
+    """from_dict with a 'params' key restores _params correctly."""
+    b = BodyParameters()
+    b.set_param("chest_circ_m", 1.05, propagate=False)
+    b.lock("dart_width_m")
+    d = b.to_dict()
+    b2 = BodyParameters.from_dict(d)
+    assert b2._params["chest_circ_m"] == pytest.approx(1.05)
+
+
+def test_from_dict_new_format_restores_locked() -> None:
+    """from_dict with a 'locked' key restores the locked set."""
+    b = BodyParameters()
+    b.lock("shoulder_width_m")
+    b2 = BodyParameters.from_dict(b.to_dict())
+    assert b2.is_locked("shoulder_width_m")
+
+
+def test_from_dict_legacy_format_works() -> None:
+    """from_dict with no 'params' key (legacy format) still produces valid object."""
+    legacy_dict = {
+        "gender":    "male",
+        "betas":     [0.0] * SMPL_SHAPE_DIMS,
+        "height_m":  1.80,
+        "weight_kg": 80.0,
+    }
+    b = BodyParameters.from_dict(legacy_dict)
+    assert b.gender == "male"
+    assert b.height_m == pytest.approx(1.80)
+    assert b.weight_kg == pytest.approx(80.0)
+
+
+# ── Phase 2: copy preserves Phase 2 state ─────────────────────────────────────
+
+
+def test_copy_preserves_params() -> None:
+    """copy() deep-copies _params so mutations don't affect the original."""
+    b = BodyParameters()
+    b.set_param("chest_circ_m", 1.05, propagate=False)
+    c = b.copy()
+    c._params["chest_circ_m"] = 0.90
+    assert b._params["chest_circ_m"] == pytest.approx(1.05)
+
+
+def test_copy_preserves_locked() -> None:
+    """copy() preserves the locked set independently."""
+    b = BodyParameters()
+    b.lock("inseam_m")
+    c = b.copy()
+    c.unlock("inseam_m")
+    assert b.is_locked("inseam_m")
+
+
+# ── Phase 2: bmi property ─────────────────────────────────────────────────────
+
+
+def test_bmi_property_computed_correctly() -> None:
+    """bmi property returns weight / height^2."""
+    b = BodyParameters(height_m=1.75, weight_kg=70.0)
+    assert b.bmi == pytest.approx(70.0 / (1.75 ** 2), rel=1e-4)
+
+
+def test_bmi_updates_after_set_param_weight() -> None:
+    """bmi is updated after calling set_param('weight_kg', …)."""
+    b = BodyParameters(height_m=1.75, weight_kg=70.0)
+    b.set_param("weight_kg", 90.0, propagate=False)
+    assert b.bmi == pytest.approx(90.0 / (1.75 ** 2), rel=1e-3)

@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { Avatar, AvatarUpdate, FittingResult, GarmentList, Garment, Measurements, PhotoEstimation, TokenResponse } from '../types'
+import type { Avatar, AvatarUpdate, FullMeasurements, FittingResult, GarmentList, Garment, Measurements, PhotoEstimation, TokenResponse } from '../types'
 
 const api = axios.create({ baseURL: '/api' })
 
@@ -29,6 +29,9 @@ export const updateAvatar = (data: AvatarUpdate) =>
 
 export const getMeasurements = () =>
   api.get<Measurements>('/avatar/measurements').then((r) => r.data)
+
+export const getFullMeasurements = () =>
+  api.get<FullMeasurements>('/avatar/measurements/full').then((r) => r.data)
 
 export const getMeshUrl = () => '/api/avatar/mesh'
 

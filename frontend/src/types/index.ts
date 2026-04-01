@@ -22,6 +22,39 @@ export interface AvatarUpdate {
   betas?: number[]
   height_m?: number
   weight_kg?: number
+  // Phase 2: anatomical params (subset of 55 keys)
+  params?: Record<string, number>
+  locked?: string[]
+}
+
+export interface FullMeasurements {
+  height_m: number
+  chest_m: number
+  underbust_m: number
+  waist_m: number
+  abdomen_m: number
+  hip_m: number
+  hips_m: number
+  neck_m: number
+  shoulder_width_m: number
+  arm_length_m: number
+  upper_arm_m: number
+  forearm_m: number
+  wrist_m: number
+  inseam_m: number
+  outseam_m: number
+  thigh_m: number
+  calf_m: number
+  ankle_m: number
+  front_length_m: number
+  back_length_m: number
+  dart_width_m: number
+  chest_with_ease_m: number
+  waist_with_ease_m: number
+  hip_with_ease_m: number
+  eu_size_top: string
+  eu_size_bottom: string
+  us_size_top: string
 }
 
 export interface Measurements {

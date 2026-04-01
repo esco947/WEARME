@@ -45,6 +45,8 @@ class Avatar(Base):
     betas: Mapped[str] = mapped_column(Text, nullable=False, default=json.dumps([0.0] * 10))
     height_m: Mapped[float] = mapped_column(Float, nullable=False, default=1.75)
     weight_kg: Mapped[float] = mapped_column(Float, nullable=False, default=70.0)
+    # Phase 2: full 55-param anatomical JSON (nullable — old rows have NULL)
+    body_data: Mapped[str | None] = mapped_column(Text, nullable=True, default=None)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
