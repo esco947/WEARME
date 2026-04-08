@@ -39,10 +39,8 @@ def register(body: RegisterRequest, db: Annotated[Session, Depends(get_db)]) -> 
     avatar = Avatar(
         id=str(uuid.uuid4()),
         user_id=user.id,
-        gender="neutral",
+        gender="male",
         betas=json.dumps([0.0] * 10),
-        height_m=1.75,
-        weight_kg=70.0,
     )
     db.add(avatar)
     db.commit()

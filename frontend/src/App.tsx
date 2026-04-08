@@ -2,10 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import ProtectedRoute from './components/ProtectedRoute'
 import AuthPage from './pages/AuthPage'
-import CataloguePage from './pages/CataloguePage'
-import ProductPage from './pages/ProductPage'
 import AvatarPage from './pages/AvatarPage'
-import FittingPage from './pages/FittingPage'
 
 export default function App() {
   return (
@@ -20,10 +17,7 @@ export default function App() {
                 <Navbar />
                 <main>
                   <Routes>
-                    <Route path="/" element={<Navigate to="/catalogue" replace />} />
-                    <Route path="/catalogue" element={<CataloguePage />} />
-                    <Route path="/catalogue/:id" element={<ProductPage />} />
-                    <Route path="/fitting/:id" element={<FittingPage />} />
+                    <Route path="/" element={<Navigate to="/avatar" replace />} />
                     <Route path="/avatar" element={<AvatarPage />} />
                   </Routes>
                 </main>

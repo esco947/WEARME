@@ -1,5 +1,5 @@
-# WEARME — vision dependencies (Phase 4+)
-# Uncomment when starting Phase 4 (Photo Fitting)
+# WEARME — vision dependencies (Phase 4)
+# Install with: pip install wearme[vision]
 #
-# mediapipe>=0.10
-# opencv-python>=4.8
+mediapipe>=0.10
+opencv-python>=4.8

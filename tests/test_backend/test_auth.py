@@ -45,10 +45,9 @@ class TestRegister:
         avatar_resp = client.get("/api/avatar", headers={"Authorization": f"Bearer {token}"})
         assert avatar_resp.status_code == 200
         avatar = avatar_resp.json()
-        assert avatar["gender"] == "neutral"
+        assert avatar["gender"] in ("male", "female")
         assert len(avatar["betas"]) == 10
-        assert avatar["height_m"] == 1.75
-        assert avatar["weight_kg"] == 70.0
+        assert isinstance(avatar["measurements"], dict)
 
 
 class TestLogin:

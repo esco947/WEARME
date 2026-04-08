@@ -26,6 +26,10 @@ BODY_WEIGHT_DEFAULT_KG: float = 70.0
 #: Number of SMPL shape coefficients used (β vector length)
 SMPL_SHAPE_DIMS: int = 10
 
+#: Extended beta range limits for maximally expressive body shapes (±5σ)
+BETA_RANGE_MIN: float = -5.0
+BETA_RANGE_MAX: float = 5.0
+
 # ── Garment ───────────────────────────────────────────────────────────────────
 
 #: Minimum seam allowance (metres)

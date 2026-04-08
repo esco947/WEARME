@@ -21,10 +21,15 @@ export default function AuthPage() {
         ? await login(email, password)
         : await register(email, password)
       setAuth(data.access_token, data.user)
-      navigate('/catalogue')
+      navigate('/avatar')
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
-      setError(msg ?? 'Une erreur est survenue.')
+      const detail = (err as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail
+      const msg = Array.isArray(detail)
+        ? (detail as { msg?: string }[]).map((d) => d.msg ?? '').filter(Boolean).join(', ')
+        : typeof detail === 'string'
+          ? detail
+          : 'Une erreur est survenue.'
+      setError(msg)
     } finally {
       setLoading(false)
     }

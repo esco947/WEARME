@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
 import bcrypt
@@ -21,7 +20,6 @@ from backend.models import User
 
 JWT_SECRET: str = os.environ.get("JWT_SECRET", "dev-secret-change-in-production")
 JWT_ALGORITHM: str = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
@@ -45,10 +43,9 @@ def verify_password(plain: str, hashed: str) -> bool:
 # ---------------------------------------------------------------------------
 
 
-def create_access_token(subject: str, expires_minutes: int = ACCESS_TOKEN_EXPIRE_MINUTES) -> str:
-    """Create a signed JWT access token with a *sub* claim."""
-    expire = datetime.now(UTC) + timedelta(minutes=expires_minutes)
-    payload = {"sub": subject, "exp": expire}
+def create_access_token(subject: str) -> str:
+    """Create a signed JWT access token with a *sub* claim (no expiry)."""
+    payload = {"sub": subject}
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
 

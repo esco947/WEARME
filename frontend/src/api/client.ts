@@ -1,9 +1,8 @@
 import axios from 'axios'
-import type { Avatar, AvatarUpdate, FullMeasurements, FittingResult, GarmentList, Garment, Measurements, PhotoEstimation, TokenResponse } from '../types'
+import type { Avatar, MeasurementsResponse, TokenResponse } from '../types'
 
 const api = axios.create({ baseURL: '/api' })
 
-// Inject JWT token from localStorage on every request
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('wearme_token')
   if (token) config.headers.Authorization = `Bearer ${token}`
@@ -24,28 +23,17 @@ export const getMe = () =>
 export const getAvatar = () =>
   api.get<Avatar>('/avatar').then((r) => r.data)
 
-export const updateAvatar = (data: AvatarUpdate) =>
-  api.put<Avatar>('/avatar', data).then((r) => r.data)
+export const setGender = (gender: 'male' | 'female') =>
+  api.put<Avatar>('/avatar/gender', { gender }).then((r) => r.data)
+
+/** targets: { measurement_key: value_in_metres } */
+export const updateSliders = (targets: Record<string, number>) =>
+  api.put<Avatar>('/avatar/sliders', { targets }).then((r) => r.data)
+
+export const photoFit = (formData: FormData) =>
+  api.post<Avatar>('/avatar/photo-fit', formData).then((r) => r.data)
 
 export const getMeasurements = () =>
-  api.get<Measurements>('/avatar/measurements').then((r) => r.data)
-
-export const getFullMeasurements = () =>
-  api.get<FullMeasurements>('/avatar/measurements/full').then((r) => r.data)
+  api.get<MeasurementsResponse>('/avatar/measurements').then((r) => r.data)
 
 export const getMeshUrl = () => '/api/avatar/mesh'
-
-// Garments
-export const listGarments = () =>
-  api.get<GarmentList>('/garments').then((r) => r.data)
-
-export const getGarment = (id: string) =>
-  api.get<Garment>(`/garments/${id}`).then((r) => r.data)
-
-// Fitting
-export const fitGarment = (garmentId: string) =>
-  api.post<FittingResult>(`/fitting/${garmentId}`).then((r) => r.data)
-
-// Photo scan — estimates avatar body params from uploaded photos
-export const avatarFromPhoto = (formData: FormData) =>
-  api.post<PhotoEstimation>('/avatar/from-photo', formData).then((r) => r.data)

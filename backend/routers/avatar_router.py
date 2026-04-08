@@ -1,4 +1,13 @@
-"""Avatar endpoints: GET/PUT params, measurements, GLB mesh."""
+"""Avatar endpoints (v2 — betas as truth).
+
+Endpoints:
+    GET  /api/avatar              → {gender, betas[10], measurements}
+    PUT  /api/avatar/gender       → {gender} → reset betas, recompute → AvatarResponse
+    PUT  /api/avatar/sliders      → {targets} → optimize betas → AvatarResponse
+    POST /api/avatar/photo-fit    → multipart → optimize betas → AvatarResponse
+    GET  /api/avatar/mesh         → GLB binary
+    GET  /api/avatar/measurements → measurements dict (cached or computed)
+"""
 
 from __future__ import annotations
 
@@ -11,38 +20,40 @@ from sqlalchemy.orm import Session
 
 from backend.auth import get_current_user
 from backend.database import get_db
-from backend.models import User
-from backend.schemas.avatar import (
-    AvatarResponse,
-    AvatarUpdateRequest,
-    FullMeasurementsResponse,
-    MeasurementsResponse,
-    PhotoEstimationResponse,
-)
-from backend.services import avatar_service, photo_service
+from backend.models import Avatar, User
+from backend.schemas.avatar import AvatarResponse, GenderUpdateRequest, MeasurementsResponse, SlidersUpdateRequest
+from backend.services import avatar_service
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/avatar", tags=["avatar"])
 
+_VALID_GENDERS = frozenset({"male", "female"})
 
-def _get_avatar(current_user: User, db: Session):
-    """Return the current user's avatar, raising 404 if missing."""
+
+def _get_or_create_avatar(current_user: User, db: Session) -> Avatar:
+    """Return the user's avatar, creating a default one if absent."""
     if current_user.avatar is None:
         db.refresh(current_user)
-    avatar = current_user.avatar
-    if avatar is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Avatar not found")
-    return avatar
+    if current_user.avatar is None:
+        avatar = Avatar(user_id=current_user.id)
+        db.add(avatar)
+        db.commit()
+        db.refresh(current_user)
+    return current_user.avatar
 
 
-def _avatar_to_schema(avatar) -> AvatarResponse:
+def _to_response(avatar: Avatar) -> AvatarResponse:
+    measurements = (
+        json.loads(avatar.measurements_cache)
+        if avatar.measurements_cache
+        else {}
+    )
     return AvatarResponse(
         id=avatar.id,
         gender=avatar.gender,
         betas=json.loads(avatar.betas),
-        height_m=avatar.height_m,
-        weight_kg=avatar.weight_kg,
+        measurements=measurements,
     )
 
 
@@ -51,164 +62,114 @@ def get_avatar(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
 ) -> AvatarResponse:
-    """Return the current user's avatar parameters."""
-    avatar = _get_avatar(current_user, db)
-    return _avatar_to_schema(avatar)
+    """Return the current user's avatar parameters and cached measurements."""
+    avatar = _get_or_create_avatar(current_user, db)
+    return _to_response(avatar)
 
 
-@router.put("", response_model=AvatarResponse)
-def update_avatar(
-    body: AvatarUpdateRequest,
+@router.put("/gender", response_model=AvatarResponse)
+def update_gender(
+    body: GenderUpdateRequest,
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
 ) -> AvatarResponse:
-    """Update one or more avatar parameters.
+    """Change avatar gender and reset betas to zero, recomputing measurements."""
+    if body.gender not in _VALID_GENDERS:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Gender must be 'male' or 'female', got {body.gender!r}",
+        )
 
-    Supports both legacy (betas/height_m/weight_kg) and Phase-2
-    (params dict of anatomical measurements) update paths.
-    """
-    avatar = _get_avatar(current_user, db)
+    import numpy as np  # noqa: PLC0415
 
-    if body.gender is not None:
-        avatar.gender = body.gender
+    avatar = _get_or_create_avatar(current_user, db)
+    avatar.gender = body.gender
 
-    # Phase 2: full anatomical update via params dict
-    if body.params is not None or body.betas is not None or body.height_m is not None or body.weight_kg is not None:
-        params = avatar_service._build_body_params(avatar)
-
-        if body.gender is not None:
-            params.gender = body.gender
-
-        if body.betas is not None:
-            import numpy as np  # noqa: PLC0415
-            params.betas = np.array(body.betas, dtype=np.float64)
-
-        if body.params is not None:
-            # Apply anatomical params (height/weight propagate, others don't)
-            height_val  = body.params.pop("height_m",  None) if isinstance(body.params, dict) else None
-            weight_val  = body.params.pop("weight_kg", None) if isinstance(body.params, dict) else None
-            for name, value in (body.params or {}).items():
-                try:
-                    params.set_param(name, float(value), propagate=False)
-                except (KeyError, ValueError):
-                    pass   # skip unknown / out-of-range params silently
-            if weight_val is not None:
-                params.set_param("weight_kg", float(weight_val), propagate=True)
-            if height_val is not None:
-                params.set_param("height_m",  float(height_val),  propagate=True)
-        else:
-            if body.height_m is not None:
-                params.set_param("height_m",  body.height_m,  propagate=True)
-            if body.weight_kg is not None:
-                params.set_param("weight_kg", body.weight_kg, propagate=True)
-
-        if body.locked is not None:
-            for name in body.locked:
-                params.lock(name)
-
-        avatar_service._save_body_params(avatar, params, db)
-    else:
-        # Pure gender update (no body shape change)
-        db.commit()
-
-    db.refresh(avatar)
-    return _avatar_to_schema(avatar)
-
-
-@router.get("/measurements/full", response_model=FullMeasurementsResponse)
-def get_full_measurements(
-    current_user: Annotated[User, Depends(get_current_user)],
-    db: Annotated[Session, Depends(get_db)],
-) -> FullMeasurementsResponse:
-    """Return complete garment-ready measurements from the 55-param system."""
-    avatar = _get_avatar(current_user, db)
     try:
-        m = avatar_service.get_full_measurements(avatar)
+        avatar_service.compute_and_cache(avatar, np.zeros(10), db)
     except Exception as exc:
-        logger.exception("Error computing full measurements")
+        logger.exception("Error computing measurements after gender update")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to compute full measurements",
+            detail="Failed to compute measurements",
         ) from exc
-    return FullMeasurementsResponse(
-        height_m=m.height_m,
-        chest_m=m.chest_m,
-        underbust_m=m.underbust_m,
-        waist_m=m.waist_m,
-        abdomen_m=m.abdomen_m,
-        hip_m=m.hip_m,
-        hips_m=m.hip_m,
-        neck_m=m.neck_m,
-        shoulder_width_m=m.shoulder_width_m,
-        arm_length_m=m.arm_length_m,
-        upper_arm_m=m.upper_arm_m,
-        forearm_m=m.forearm_m,
-        wrist_m=m.wrist_m,
-        inseam_m=m.inseam_m,
-        outseam_m=m.outseam_m,
-        thigh_m=m.thigh_m,
-        calf_m=m.calf_m,
-        ankle_m=m.ankle_m,
-        front_length_m=m.front_length_m,
-        back_length_m=m.back_length_m,
-        dart_width_m=m.dart_width_m,
-        chest_with_ease_m=m.chest_with_ease_m,
-        waist_with_ease_m=m.waist_with_ease_m,
-        hip_with_ease_m=m.hip_with_ease_m,
-        eu_size_top=m.eu_size_top,
-        eu_size_bottom=m.eu_size_bottom,
-        us_size_top=m.us_size_top,
-    )
 
-
-@router.get("/measurements", response_model=MeasurementsResponse)
-def get_measurements(
-    current_user: Annotated[User, Depends(get_current_user)],
-    db: Annotated[Session, Depends(get_db)],
-) -> MeasurementsResponse:
-    """Compute body measurements from the avatar's SMPL parameters."""
-    avatar = _get_avatar(current_user, db)
-    try:
-        result = avatar_service.get_measurements(avatar)
-    except Exception as exc:
-        logger.exception("Error computing measurements")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to compute measurements") from exc
-    return MeasurementsResponse(**result)
-
-
-@router.post("/from-photo", response_model=PhotoEstimationResponse)
-async def avatar_from_photo(
-    current_user: Annotated[User, Depends(get_current_user)],
-    db: Annotated[Session, Depends(get_db)],
-    front_photo: Annotated[UploadFile, File(description="Photo de face (fond uni)")],
-    side_photo: Annotated[UploadFile | None, File(description="Photo de profil (optionnel)")] = None,
-    height_m: Annotated[float, Form(ge=1.4, le=2.2)] = 1.75,
-    weight_kg: Annotated[float, Form(ge=40.0, le=200.0)] = 70.0,
-) -> PhotoEstimationResponse:
-    """Estimate avatar body shape from a front photo (and optional side photo)."""
-    front_bytes = await front_photo.read()
-    side_bytes  = await side_photo.read() if side_photo else None
-
-    betas, confidence, message = photo_service.estimate_betas_from_photo(
-        front_bytes, side_bytes, height_m, weight_kg
-    )
-
-    avatar = _get_avatar(current_user, db)
-    avatar.betas     = json.dumps(betas)
-    avatar.height_m  = height_m
-    avatar.weight_kg = weight_kg
-    db.commit()
     db.refresh(avatar)
+    return _to_response(avatar)
 
-    return PhotoEstimationResponse(
-        id=avatar.id,
-        gender=avatar.gender,
-        betas=betas,
-        height_m=height_m,
-        weight_kg=weight_kg,
-        confidence=confidence,
-        message=message,
-    )
+
+@router.put("/sliders", response_model=AvatarResponse)
+def update_sliders(
+    body: SlidersUpdateRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> AvatarResponse:
+    """Optimise SMPL betas to match target measurements.
+
+    ``targets`` keys must match ``core.body_schema.SLIDER_KEYS``:
+    ``height``, ``chest_circumference``, ``waist_circumference``,
+    ``hip_circumference``, ``shoulder_width``, ``inseam``.
+    Values are in metres.
+    """
+    avatar = _get_or_create_avatar(current_user, db)
+    try:
+        avatar_service.update_from_sliders(avatar, body.targets, db)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
+    except Exception as exc:
+        logger.exception("Error in slider optimisation")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Slider optimisation failed",
+        ) from exc
+
+    db.refresh(avatar)
+    return _to_response(avatar)
+
+
+@router.post("/photo-fit", response_model=AvatarResponse)
+async def photo_fit(
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+    front: Annotated[UploadFile, File(description="Front photo (required)")],
+    side: Annotated[UploadFile, File(description="Side photo (required)")],
+    height_m: Annotated[float, Form(ge=1.4, le=2.2)],
+    gender: Annotated[str, Form()],
+) -> AvatarResponse:
+    """Estimate body shape from front and side photos.
+
+    Both photos are required. The fitting runs a silhouette-IoU + landmark
+    reprojection optimiser (scipy L-BFGS-B, ~10-30s on CPU).
+    """
+    if gender not in _VALID_GENDERS:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Gender must be 'male' or 'female', got {gender!r}",
+        )
+
+    front_bytes = await front.read()
+    side_bytes  = await side.read()
+
+    avatar = _get_or_create_avatar(current_user, db)
+    try:
+        avatar_service.update_from_photos(
+            avatar, front_bytes, side_bytes, height_m, gender, db
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
+    except Exception as exc:
+        logger.exception("Error in photo fitting")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Photo fitting failed",
+        ) from exc
+
+    db.refresh(avatar)
+    return _to_response(avatar)
 
 
 @router.get("/mesh")
@@ -217,10 +178,31 @@ def get_mesh(
     db: Annotated[Session, Depends(get_db)],
 ) -> Response:
     """Return the avatar SMPL mesh as a GLB binary."""
-    avatar = _get_avatar(current_user, db)
+    avatar = _get_or_create_avatar(current_user, db)
     try:
-        glb_bytes = avatar_service.get_glb_bytes(avatar)
+        glb_bytes = avatar_service.get_glb(avatar)
     except Exception as exc:
         logger.exception("Error generating GLB mesh")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to generate mesh") from exc
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to generate mesh",
+        ) from exc
     return Response(content=glb_bytes, media_type="model/gltf-binary")
+
+
+@router.get("/measurements", response_model=MeasurementsResponse)
+def get_measurements(
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> MeasurementsResponse:
+    """Return current body measurements (from cache or recomputed)."""
+    avatar = _get_or_create_avatar(current_user, db)
+    try:
+        m = avatar_service.get_measurements(avatar)
+    except Exception as exc:
+        logger.exception("Error computing measurements")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to compute measurements",
+        ) from exc
+    return MeasurementsResponse(measurements=m)
